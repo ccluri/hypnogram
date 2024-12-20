@@ -21,15 +21,16 @@ def fetch_freq(year):
 
 def fetch_bias(year):
     # correction for the amount of overall sleep per day over age
+    # 0yr -> 16 hrs per 24hrs
     # 2yr -> 12 hrs per 24hrs
     # 16yr -> 8 hrs per 24hrs
-    # 80yr -> 5.17 hrs per 24hrs
+    # 80yr -> 6 hrs per 24hrs
     if year <= 2:
-        return -0.2 + 0.2*(year/2)
+        return -0.5 + 0.5*(year/2)
     elif year <= 16:
-        return (year-2)*(0.5)/14
+        return (year-2)*(0.427)/14
     else:
-        return 0.5 + ((year-16)*(0.28)/(80-16))
+        return 0.427 + ((year-16)*(0.28)/(80-16))
 
 
 def kth_term(freq, k, ttx=ttx):
@@ -50,7 +51,7 @@ def find_awake_sleep_frac(f_vals, debug=True):
 
 def find_rem_sleep_frac(f_vals, rem_thres, s_vals, debug=False):
     sleep_idx = np.where(s_vals < 0)  # when in sleep cycle
-    rem_idx = np.where(f_vals[sleep_idx] >= rem_thres)  # if in rem
+    rem_idx = np.where(f_vals[sleep_idx] >= rem_thres[sleep_idx])  # if in rem
     sleep_time = len(sleep_idx[0])
     rem_time = len(rem_idx[0])
     frac_rem = rem_time/(sleep_time + rem_time)
@@ -97,7 +98,7 @@ def compute_fourier_sleep(year, ttx=ttx, debug=False):
                         3*kth_term(freq, 5, ttx=ttx))
     f_vals = start_with_awake(f_mode, year, bias)
     # a threshold for when it is in rem mode
-    rem_thres = -0.75 + bias + ((bias < 0)*1.5*bias)
+    rem_thres = np.zeros_like(ttx) - 0.75 + bias + ((bias < 0)*1.5*bias)
     if debug:
         print('Age (yrs): ', year)
         plt.plot(ttx, f_vals, 'r.')
@@ -109,12 +110,13 @@ if __name__ == '__main__':
     # year = 0.5
     # compute_sine_sleep(year)
 
-    year = 12
+    year = 80
     s_vals, f_vals, rem_thres = compute_fourier_sleep(year, debug=True)
-    # frac_awake = find_awake_sleep_frac(s_vals, debug=False)
-    # frac_rem = find_rem_sleep_frac(f_vals, rem_thres, s_vals, debug=False)
-    # print('Sleep hrs: ', (1-frac_awake)*24)
-    # print('REM hrs: ', (1-frac_awake)*24*frac_rem)
+    frac_awake = find_awake_sleep_frac(s_vals, debug=False)
+    frac_rem = find_rem_sleep_frac(f_vals, rem_thres, s_vals, debug=False)
+    sl_hrs = 24 - (frac_awake*24)
+    print('Sleep hrs: ', sl_hrs)
+    print('REM hrs: ', sl_hrs*frac_rem)
 
 
     # ages = np.arange(0, 100, 0.1)
@@ -131,14 +133,14 @@ if __name__ == '__main__':
     #     remhrs.append(sleephrs[-1]*frac_rem)
     #     nremhrs.append(sleephrs[-1]-remhrs[-1])
     #     biass.append(fetch_bias(ii))
-    #     # rem_thress.append(rem_thres)
+    #     rem_thress.append(rem_thres)
     # plt.plot(np.array(ages), nremhrs)
     # plt.plot(np.array(ages), sleephrs)
     # # biass = np.array(biass)
     # # plt.plot(np.array(ages), biass)
     # # plt.plot(np.array(ages), np.array(rem_thress))
     # plt.xlim(0, 100)
-    # plt.ylim(0, 24)
+    # plt.ylim(0, 24)             
     # plt.ylabel('Sleep hours')
     # plt.xlabel('Age (yrs')
 
