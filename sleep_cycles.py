@@ -19,6 +19,20 @@ def fetch_freq(year):
         return 24
 
 
+def fetch_duty(year):
+    # correction for the amount of overall sleep per day over age
+    # 0yr -> 16 hrs sleep per 24hrs  D(A) = 0.33
+    # 2yr -> 12 hrs sleep per 24hrs  D(A) = 0.5
+    # 16yr -> 8 hrs sleep per 24hrs  D(A) = 0.66
+    # 80yr -> 6 hrs sleep per 24hrs  D(A) = 0.75
+    if year <= 2:
+        return 0.33333 + (year)*(0.1666667/2)
+    elif year <= 16:
+        return 0.5 + (year-2)*(0.16666/14)
+    else:
+        return 0.6666 + (year-16)*(0.083333/64)
+
+    
 def fetch_bias(year):
     # correction for the amount of overall sleep per day over age
     # 0yr -> 16 hrs per 24hrs
@@ -35,6 +49,7 @@ def fetch_bias(year):
 
 def kth_term(freq, k, ttx=ttx):
     # kth term of the fourier mode for a sqare wave
+    # https://en.wikipedia.org/wiki/Square_wave
     ff = 2*k - 1
     return np.sin(2*np.pi*ff*(ttx)/freq) / ff
 
@@ -89,7 +104,7 @@ def compute_fourier_sleep(year, ttx=ttx, debug=False):
     for better version consider FT of pwm,  (TODO?)
     https://liraeletronica.weebly.com/uploads/4/9/3/5/4935509/spectral_analysis_of_a_pwm_signal.pdf
     '''
-    freq = fetch_freq(year)  # fixes amount of sleep per day
+    freq = fetch_freq(year)  # fixes amount of sleep bouts per day
     bias = fetch_bias(year)   # hours per sleep cycle
     s_vals = compute_sine_sleep(year, ttx, debug=debug)
     # # REM mode of sleep - the first 5 fourier modes of a square wave
@@ -110,13 +125,16 @@ if __name__ == '__main__':
     # year = 0.5
     # compute_sine_sleep(year)
 
-    year = 80
-    s_vals, f_vals, rem_thres = compute_fourier_sleep(year, debug=True)
-    frac_awake = find_awake_sleep_frac(s_vals, debug=False)
-    frac_rem = find_rem_sleep_frac(f_vals, rem_thres, s_vals, debug=False)
-    sl_hrs = 24 - (frac_awake*24)
-    print('Sleep hrs: ', sl_hrs)
-    print('REM hrs: ', sl_hrs*frac_rem)
+    year = 12
+
+    print(fetch_bias(year))
+    
+    # s_vals, f_vals, rem_thres = compute_fourier_sleep(year, debug=True)
+    # frac_awake = find_awake_sleep_frac(s_vals, debug=False)
+    # frac_rem = find_rem_sleep_frac(f_vals, rem_thres, s_vals, debug=False)
+    # sl_hrs = 24 - (frac_awake*24)
+    # print('Sleep hrs: ', sl_hrs)
+    # print('REM hrs: ', sl_hrs*frac_rem)
 
 
     # ages = np.arange(0, 100, 0.1)
